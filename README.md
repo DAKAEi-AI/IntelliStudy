@@ -117,10 +117,10 @@ Nouraddin Abdurahman Aden is a software developer with expertise in:
 - Creating accessible learning tools for students of all backgrounds
 
 Connect with Nouraddin:
-- GitHub: [github.com/nouraddin](https://github.com/nouraddin)
-- LinkedIn: [linkedin.com/in/nouraddin-aden](https://linkedin.com/in/nouraddin-aden)
-- Twitter: [@nouraddinaden](https://twitter.com/nouraddinaden)
-- Instagram: [@nouraddin_aden](https://instagram.com/nouraddin_aden)
+- GitHub: [github.com/NouradinAbdurahman](https://github.com/NouradinAbdurahman)
+- LinkedIn: [linkedin.com/in/nouraddin](https://www.linkedin.com/in/nouraddin/)
+- Instagram: [@nouradiin_](https://www.instagram.com/nouradiin_/)
+- Email: [n.aden1208@gmil.com](mailto:n.aden1208@gmil.com)
 
 ## License
 
