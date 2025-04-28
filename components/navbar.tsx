@@ -44,7 +44,7 @@ export default function Navbar() {
       <div className="container flex h-24 items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
           <Image 
-            src="/logo.png" 
+            src="https://i.ibb.co/v49kzqvJ/Logo.png" 
             alt="IntelliStudy Logo" 
             width={80}
             height={80}
