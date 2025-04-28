@@ -14,7 +14,7 @@ export default function Footer() {
           <div className="flex flex-col space-y-4">
             <div className="flex items-center justify-center sm:justify-start">
               <Image 
-                src="/logo.png" 
+                src="https://i.ibb.co/v49kzqvJ/Logo.png" 
                 alt="IntelliStudy Logo" 
                 width={140}
                 height={140}
