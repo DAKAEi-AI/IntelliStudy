@@ -20,7 +20,7 @@ export const metadata: Metadata = {
       { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "32x32" },
       { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "any" }
     ],
-    apple: "/logo.png",
+    apple: "https://i.ibb.co/v49kzqvJ/Logo.png",
   }
 }
 
