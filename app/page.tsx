@@ -50,7 +50,7 @@ export default function HomePage() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-16 md:mb-24">
               <div className="flex items-center justify-center mb-4">
                 <Image 
-                  src="/logo.png" 
+                  src="https://i.ibb.co/v49kzqvJ/Logo.png" 
                   alt="IntelliStudy Logo" 
                   width={140}
                   height={140}
