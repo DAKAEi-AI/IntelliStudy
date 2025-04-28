@@ -1,3 +1,4 @@
+![Cover Image](https://i.ibb.co/39gDS6Fq/INTELLSTUDY.png)
 # IntelliStudy - AI Tools for Students (Using DAKAEi Console API)
 
 IntelliStudy is an AI-powered learning platform designed to enhance the educational experience for students of all levels. This project leverages advanced AI capabilities to provide practical tools that help with common academic tasks, making learning more efficient and accessible.
