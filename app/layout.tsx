@@ -14,13 +14,13 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "IntelliStudy - AI Tools for Students",
   description: "AI-powered learning platform with tools for students",
-  generator: 'v0.dev',
+  generator: 'v0dev',
   icons: {
     icon: [
-      { url: "/logo.png", sizes: "32x32" },
-      { url: "/logo.png", sizes: "any" }
+      { url: "https://i.ibb.co/v49kzqv/Logo.png", sizes: "32x32" },
+      { url: "https://i.ibb.co/v49kzqv/Logo.png", sizes: "any" }
     ],
-    apple: "/logo.png",
+    apple: "https://i.ibb.co/v49kzqvJ/Logo.png",
   }
 }
 
