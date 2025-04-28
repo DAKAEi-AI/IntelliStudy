@@ -1,4 +1,5 @@
-# IntelliStudy - AI Tools for Students
+![Cover Image](https://i.ibb.co/39gDS6Fq/INTELLSTUDY.png)
+# IntelliStudy - AI Tools for Students (Using DAKAEi Console API)
 
 IntelliStudy is an AI-powered learning platform designed to enhance the educational experience for students of all levels. This project leverages advanced AI capabilities to provide practical tools that help with common academic tasks, making learning more efficient and accessible.
 
@@ -37,11 +38,12 @@ IntelliStudy is built using modern web technologies:
 This project uses environment variables to store API keys securely. Before running the project:
 
 1. Create a `.env` file in the root directory
-2. Add your API keys as shown in `.env.example`:
+2. Get your DAKAEi API Key from DAKAEi API Console ([(https://console.dakaei.com/)](https://console.dakaei.com/api-keys))
+3. Add your API keys as shown in `.env.example`:
    ```
    DAKAEI_API_KEY=your_dakaei_api_key_here
    ```
-3. Never commit your actual `.env` file to version control
+4. Never commit your actual `.env` file to version control
 
 ## Getting Started
 
@@ -108,15 +110,6 @@ IntelliStudy is continuously evolving with several features planned for future r
 
 This project was created by **Nouraddin Abdurahman Aden**, a passionate developer focused on building innovative AI-powered educational tools. With a deep interest in creating technology that enhances learning experiences, Nouraddin developed IntelliStudy to bridge the gap between advanced AI capabilities and everyday student needs.
 
-### About Nouraddin
-
-Nouraddin Abdurahman Aden is a software developer with expertise in:
-- Full-stack web development using React, Next.js, and modern JavaScript
-- UI/UX design with a focus on educational technology
-- AI integration and natural language processing applications
-- Creating accessible learning tools for students of all backgrounds
-
-Connect with Nouraddin:
 - GitHub: [github.com/NouradinAbdurahman](https://github.com/NouradinAbdurahman)
 - LinkedIn: [linkedin.com/in/nouraddin](https://www.linkedin.com/in/nouraddin/)
 - Instagram: [@nouradiin_](https://www.instagram.com/nouradiin_/)
@@ -134,5 +127,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For questions, collaborations, or feedback about IntelliStudy, feel free to reach out!
 
 ---
-
-© 2025 Nouraddin Abdurahman Aden. All Rights Reserved.
