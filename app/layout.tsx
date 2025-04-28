@@ -17,8 +17,8 @@ export const metadata: Metadata = {
   generator: 'v0.dev',
   icons: {
     icon: [
-      { url: "/logo.png", sizes: "32x32" },
-      { url: "/logo.png", sizes: "any" }
+      { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "32x32" },
+      { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "any" }
     ],
     apple: "/logo.png",
   }
