@@ -1,23 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 
-export const useMobile = () => {
+export function useMobile() {
   const [isMobile, setIsMobile] = useState(false)
-
+  
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024)
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
+      setIsMobile(mobileRegex.test(userAgent.toLowerCase()))
     }
-
-    handleResize()
-
-    window.addEventListener("resize", handleResize)
-
-    return () => {
-      window.removeEventListener("resize", handleResize)
-    }
+    
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
   }, [])
-
+  
   return isMobile
 }

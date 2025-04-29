@@ -3,14 +3,11 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { MessageSquare, Send, Loader2, Bot, User, BellOff, Bell } from "lucide-react"
+import { MessageSquare, Send, Loader2, Bot, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useLocalStorage } from "../../../hooks/use-local-storage"
 import Navbar from "@/components/navbar"
 import { chatWithAI } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -24,35 +21,25 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [vibrationEnabled, setVibrationEnabled] = useLocalStorage<boolean>("vibration-enabled", true)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
+  // Modified scroll function to handle scrolling better
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (chatContainerRef.current) {
+      const { scrollHeight, clientHeight } = chatContainerRef.current
+      chatContainerRef.current.scrollTop = scrollHeight - clientHeight
+    }
   }
 
-  // Vibration function
-  const triggerVibration = (pattern: number | number[]) => {
-    if (vibrationEnabled && navigator.vibrate) {
-      navigator.vibrate(pattern);
-    }
-  };
-
+  // Scroll when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Effect for handling vibration when loading state changes
-  useEffect(() => {
-    if (isLoading) {
-      // When AI starts responding, trigger a subtle, short vibration
-      triggerVibration(150);
-    } else if (messages.length > 0) {
-      // When AI finishes responding, trigger a double vibration
-      triggerVibration([100, 50, 100]);
-    }
-  }, [isLoading, messages.length]);
+    // Use a small timeout to ensure content has rendered
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   async function handleSendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -82,105 +69,87 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-col h-[100vh]">
       <Navbar />
 
-      <main className="flex-1 container py-4 sm:py-8">
-        <div className="flex flex-col items-center justify-center mb-4 sm:mb-8">
-          <div className="rounded-full bg-primary/10 p-3 sm:p-4 mb-2 sm:mb-4 floating">
-            <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
+      {/* Fixed height container with header */}
+      <div className="flex-1 overflow-hidden flex flex-col container max-w-screen-xl mx-auto px-4 py-4">
+        <div className="text-center mb-4">
+          <div className="inline-flex rounded-full bg-primary/10 p-2 mb-2">
+            <MessageSquare className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold gradient-text">AI Chatbot</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2 text-center max-w-2xl px-2">
+          <h1 className="text-xl sm:text-2xl font-bold gradient-text">AI Chatbot</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl mx-auto">
             Get instant answers to your questions and receive personalized learning assistance.
           </p>
         </div>
 
-        <Card className="max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm">
-          <CardHeader className="px-3 py-3 sm:px-6 sm:py-6">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg sm:text-xl">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={vibrationEnabled} 
-                        onCheckedChange={setVibrationEnabled} 
-                        id="vibration-mode" 
-                        className="data-[state=checked]:bg-primary"
-                      />
-                      {vibrationEnabled ? (
-                        <Bell className="h-4 w-4 text-primary" />
-                      ) : (
-                        <BellOff className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      {vibrationEnabled ? "Vibration feedback on" : "Vibration feedback off"}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <CardDescription className="text-xs sm:text-sm">Your AI study assistant is ready to help with your questions</CardDescription>
+        {/* Chat container with fixed dimensions */}
+        <Card className="flex-1 flex flex-col w-full max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm overflow-hidden">
+          <CardHeader className="px-3 py-2 sm:px-6 sm:py-3 shrink-0">
+            <CardTitle className="text-lg">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
+            <CardDescription className="text-xs">Your AI study assistant is ready to help with your questions</CardDescription>
           </CardHeader>
-          <CardContent className="px-3 sm:px-6">
-            <div className="h-[400px] sm:h-[500px] overflow-y-auto p-2 sm:p-4 rounded-md bg-background/50 border mb-2 sm:mb-4">
+          
+          {/* Scrollable message area */}
+          <CardContent 
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto px-3 sm:px-6 py-2"
+          >
+            <div className="rounded-md bg-background/50 border p-2 sm:p-3 min-h-full">
               {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4 sm:p-8">
-                  <Bot className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-3 sm:mb-4 opacity-50" />
-                  <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">Welcome to <span className="gradient-text">IntelliBot</span>!</h3>
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <Bot className="h-10 w-10 sm:h-12 sm:w-12 text-primary mb-3 opacity-50" />
+                  <h3 className="text-base sm:text-lg font-semibold mb-1">Welcome to <span className="gradient-text">IntelliBot</span>!</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
                     I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and
                     I'll do my best to help you succeed!
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 sm:space-y-4">
+                <div className="space-y-2">
                   {messages.map((message, index) => (
                     <div
                       key={index}
                       className={cn(
-                        "flex items-start gap-2 sm:gap-3 rounded-lg p-2 sm:p-4",
-                        message.role === "user" ? "bg-secondary ml-8 sm:ml-12" : "bg-primary/10 mr-8 sm:mr-12",
+                        "flex items-start gap-2 rounded-lg p-2",
+                        message.role === "user" ? "bg-secondary ml-4 sm:ml-8" : "bg-primary/10 mr-4 sm:mr-8",
                       )}
                     >
                       <div
                         className={cn(
-                          "rounded-full p-1.5 sm:p-2 flex-shrink-0",
+                          "rounded-full p-1 flex-shrink-0",
                           message.role === "user" ? "bg-background" : "bg-primary/20",
                         )}
                       >
                         {message.role === "user" ? <User className="h-3 w-3 sm:h-4 sm:w-4" /> : <Bot className="h-3 w-3 sm:h-4 sm:w-4" />}
                       </div>
-                      <div className="whitespace-pre-wrap text-xs sm:text-base">{message.content}</div>
+                      <div className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</div>
                     </div>
                   ))}
-                  <div ref={messagesEndRef} />
                 </div>
               )}
             </div>
           </CardContent>
-          <CardFooter className="px-3 py-2 sm:px-6 sm:py-4">
+          
+          {/* Fixed input area */}
+          <CardFooter className="px-3 py-2 sm:px-6 sm:py-3 border-t shrink-0">
             <form onSubmit={handleSendMessage} className="w-full flex gap-2">
               <Input
                 placeholder="Type your message here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading}
-                className="flex-1 text-sm sm:text-base h-9 sm:h-10"
+                className="flex-1 text-sm h-9"
               />
-              <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 sm:h-10 px-2 sm:px-3">
+              <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 px-2">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span className="sr-only">Send message</span>
               </Button>
             </form>
           </CardFooter>
         </Card>
-      </main>
+      </div>
     </div>
   )
 }
