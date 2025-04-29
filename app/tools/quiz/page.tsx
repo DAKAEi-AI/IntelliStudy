@@ -47,7 +47,7 @@ export default function QuizPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileName, setFileName] = useState<string>("")
-  const [inputMethod, setInputMethod] = useState<string>("ai")
+  const [inputMethod, setInputMethod] = useState<string>("file") // Changed default from "ai" to "file"
   const [currentStep, setCurrentStep] = useState(0) // 0 for quiz creation, 1+ for questions
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([])
   const [quizCompleted, setQuizCompleted] = useState(false)
@@ -266,7 +266,7 @@ export default function QuizPage() {
               <CardDescription className="text-xs sm:text-sm">Customize your quiz parameters</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
-              <Tabs defaultValue="ai" value={inputMethod} onValueChange={setInputMethod} className="w-full">
+              <Tabs defaultValue="file" value={inputMethod} onValueChange={setInputMethod} className="w-full">
                 <TabsList className="grid grid-cols-2 w-full mb-4 h-9 sm:h-10">
                   <TabsTrigger value="ai" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                     <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
