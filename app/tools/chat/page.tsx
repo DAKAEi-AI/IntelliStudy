@@ -212,38 +212,39 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[100vh]">
+    <div className="flex flex-col h-screen">
       <Navbar />
 
-      {/* Fixed height container with header */}
-      <div className="flex-1 overflow-hidden flex flex-col container max-w-screen-xl mx-auto px-4 py-4">
-        <div className="text-center mb-4">
-          <div className="inline-flex rounded-full bg-primary/10 p-2 mb-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
+      {/* Main container with fixed height */}
+      <div className="flex-1 flex flex-col w-full max-w-full sm:container sm:max-w-screen-xl mx-auto px-1 xs:px-2 sm:px-4 pt-2 pb-2 overflow-hidden">
+        <div className="text-center mb-2 sm:mb-3">
+          <div className="inline-flex rounded-full bg-primary/10 p-1 sm:p-2 mb-1 sm:mb-2">
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold gradient-text">AI Chatbot</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl mx-auto">
+          <h1 className="text-base xs:text-lg sm:text-xl lg:text-2xl font-bold gradient-text">AI Chatbot</h1>
+          <p className="text-xs xs:text-sm text-muted-foreground mt-1 max-w-full xs:max-w-xs sm:max-w-lg lg:max-w-2xl mx-auto px-2">
             Get instant answers to your questions and receive personalized learning assistance.
           </p>
         </div>
 
-        {/* Chat container with fixed dimensions */}
-        <Card className="flex-1 flex flex-col w-full max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm overflow-hidden">
-          <CardHeader className="px-3 py-2 sm:px-6 sm:py-3 shrink-0">
-            <CardTitle className="text-lg">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
+        {/* Chat container - fixed 100vh height minus header/title space */}
+        <Card className="flex-1 flex flex-col w-full max-w-full sm:max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm overflow-hidden" 
+          style={{ height: 'calc(100vh - 130px)', maxHeight: 'calc(100vh - 100px)' }}>
+          <CardHeader className="px-2 py-1 xs:py-2 sm:px-4 md:px-6 sm:py-2 md:py-3 shrink-0">
+            <CardTitle className="text-sm xs:text-base sm:text-lg">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
             <CardDescription className="text-xs">Your AI study assistant is ready to help with your questions</CardDescription>
           </CardHeader>
           
           {/* Scrollable message area */}
           <CardContent 
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto px-3 sm:px-6 py-2"
+            className="flex-1 overflow-y-auto px-1 sm:px-4 md:px-6 py-1 sm:py-2"
           >
-            <div className="rounded-md bg-background/50 border p-2 sm:p-3 min-h-full flex flex-col w-full h-full">
+            <div className="rounded-md bg-background/50 border p-1 xs:p-2 sm:p-3 flex flex-col w-full h-full">
               {messages.length === 0 ? (
                 <div className="flex flex-1 items-center justify-center w-full h-full text-center p-4">
                   <div className="flex flex-col items-center justify-center w-full">
-                    <div className="h-10 w-10 sm:h-12 sm:w-12 relative mb-3">
+                    <div className="h-12 w-12 relative mb-4">
                       <Image 
                         src="https://i.ibb.co/v49kzqvJ/Logo.png" 
                         alt="IntelliBot Logo" 
@@ -251,32 +252,31 @@ export default function ChatPage() {
                         className="object-contain"
                       />
                     </div>
-                    <h3 className="text-base sm:text-lg font-semibold mb-1">Hi, I'm <span className="gradient-text">IntelliBot</span></h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground max-w-md min-h-[40px]">
+                    <h3 className="text-sm sm:text-lg font-semibold mb-2">Hi, I'm <span className="gradient-text">IntelliBot</span></h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground max-w-[90vw] sm:max-w-md min-h-[40px]">
                       {typedWelcome}
                       {typedWelcome.length < welcomeDescription.length && <span className="blinking-cursor">|</span>}
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2 w-full">
+                <div className="w-full flex-1 space-y-2 xs:space-y-3 sm:space-y-4 pb-2 sm:pb-4 flex flex-col">
                   {messages.map((message, index) => (
                     <div
                       key={index}
                       className={cn(
-                        "flex items-start gap-2 rounded-lg p-2",
+                        "flex items-start gap-1 xs:gap-2 rounded-lg p-1 xs:p-2 max-h-[40vh] xs:max-h-[45vh] sm:max-h-[50vh] overflow-hidden",
                         message.role === "user"
-                          ? "ml-auto bg-secondary justify-end text-right max-w-fit"
-                          : "mr-auto bg-primary/10 justify-start text-left max-w-[80%] relative"
+                          ? "self-end bg-primary/20 max-w-[85vw] xs:max-w-[80vw] sm:max-w-fit"
+                          : "self-start bg-secondary/60 max-w-[85vw] xs:max-w-[90vw] sm:max-w-[80%] md:max-w-[75%]"
                       )}
-                      style={message.role === "user" ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }}
                     >
                       {message.role === "user" ? (
                         <div className="rounded-full p-1 flex-shrink-0 bg-background">
-                          <User className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <User className="h-3 w-3 xs:h-3.5 xs:w-3.5 sm:h-4 sm:w-4" />
                         </div>
                       ) : (
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
+                        <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
                           <Image 
                             src="/Logo.png" 
                             alt="IntelliBot Logo" 
@@ -285,31 +285,52 @@ export default function ChatPage() {
                           />
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap text-xs sm:text-sm flex-1">
+                      <div className="whitespace-pre-wrap text-xs xs:text-sm flex-1 break-words overflow-y-auto overflow-x-hidden max-h-[35vh] xs:max-h-[40vh] sm:max-h-[45vh] pr-1 w-full">
                         {message.role === "assistant" ? (
                           splitCodeAndExplanation(autoFormatCodeBlocks(message.content)).map((block, i) =>
                             block.type === 'code' ? (
-                              <div key={i} className="my-2 relative group">
+                              <div key={i} className="my-1 xs:my-2 relative group w-full">
                                 <button
-                                  className="absolute top-2 right-2 z-10 bg-muted px-2 py-1 rounded text-xs opacity-80 hover:opacity-100 transition"
+                                  className="absolute top-1 xs:top-2 right-1 xs:right-2 z-10 bg-muted px-1 xs:px-2 py-0.5 xs:py-1 rounded text-xs opacity-80 hover:opacity-100 transition"
                                   onClick={() => navigator.clipboard.writeText(block.content)}
                                   title="Copy code"
                                   type="button"
                                 >
                                   Copy
                                 </button>
-                                <SyntaxHighlighter
-                                  language={block.lang}
-                                  style={oneDark}
-                                  customStyle={{ borderRadius: '8px', padding: '1em', fontSize: '0.95em', margin: 0 }}
-                                  showLineNumbers={false}
-                                >
-                                  {block.content}
-                                </SyntaxHighlighter>
+                                <div className="overflow-x-auto w-full">
+                                  <SyntaxHighlighter
+                                    language={block.lang}
+                                    style={oneDark}
+                                    customStyle={{ 
+                                      borderRadius: '6px', 
+                                      padding: '0.75em 1em', 
+                                      fontSize: '0.75em',
+                                      margin: 0, 
+                                      maxHeight: '20vh',
+                                      overflowY: 'auto',
+                                      width: '100%'
+                                    }}
+                                    showLineNumbers={false}
+                                    wrapLongLines={true}
+                                  >
+                                    {block.content}
+                                  </SyntaxHighlighter>
+                                </div>
                               </div>
                             ) : (
-                              <div key={i} className="mb-2">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.content || ''}</ReactMarkdown>
+                              <div key={i} className="mb-2 xs:mb-3 overflow-hidden w-full">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    p: ({node, ...props}) => <p className="mb-1.5 xs:mb-2 break-words" {...props} />,
+                                    ul: ({node, ...props}) => <ul className="mb-1.5 xs:mb-2 pl-3 xs:pl-4 list-disc w-full pr-1" {...props} />,
+                                    ol: ({node, ...props}) => <ol className="mb-1.5 xs:mb-2 pl-3 xs:pl-4 list-decimal w-full pr-1" {...props} />,
+                                    li: ({node, ...props}) => <li className="mb-0.5 xs:mb-1 break-words pr-1" {...props} />
+                                  }}
+                                >
+                                  {block.content || ''}
+                                </ReactMarkdown>
                               </div>
                             )
                           )
@@ -321,7 +342,7 @@ export default function ChatPage() {
                       {message.role === "assistant" && (
                         <button
                           className={cn(
-                            "ml-2 p-1 rounded transition-colors duration-200",
+                            "ml-1 xs:ml-2 p-0.5 xs:p-1 rounded transition-colors duration-200",
                             copiedIndex === index ? "bg-green-100 text-green-600" : "hover:bg-muted"
                           )}
                           title={copiedIndex === index ? "Copied!" : "Copy response"}
@@ -329,17 +350,19 @@ export default function ChatPage() {
                           type="button"
                         >
                           {copiedIndex === index ? (
-                            <Check className="h-4 w-4 animate-bounce" />
+                            <Check className="h-3 xs:h-4 w-3 xs:w-4 animate-bounce" />
                           ) : (
-                            <Copy className="h-4 w-4 text-muted-foreground" />
+                            <Copy className="h-3 xs:h-4 w-3 xs:w-4 text-muted-foreground" />
                           )}
                         </button>
                       )}
                     </div>
                   ))}
                   {partialResponse && (
-                    <div className="flex items-start gap-2 rounded-lg p-2 bg-primary/10 mr-auto max-w-[80%] justify-start text-left">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
+                    <div 
+                      className="flex items-start gap-1 xs:gap-2 rounded-lg p-1 xs:p-2 bg-secondary/60 self-start max-w-[85vw] xs:max-w-[90vw] sm:max-w-[80%] md:max-w-[75%] max-h-[40vh] xs:max-h-[45vh] sm:max-h-[50vh] overflow-hidden"
+                    >
+                      <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
                         <Image 
                           src="/Logo.png" 
                           alt="IntelliBot Logo" 
@@ -347,15 +370,15 @@ export default function ChatPage() {
                           className="object-contain"
                         />
                       </div>
-                      <div className="whitespace-pre-wrap text-xs sm:text-sm">
+                      <div className="whitespace-pre-wrap text-xs xs:text-sm break-words overflow-y-auto max-h-[35vh] xs:max-h-[40vh] sm:max-h-[45vh] pr-1">
                         {formatMessage(partialResponse)}
                         <span className="blinking-cursor">|</span>
                       </div>
                     </div>
                   )}
                   {isLoading && !partialResponse && (
-                    <div className="flex items-center gap-2 p-2 text-muted-foreground">
-                      <Loader2 className="animate-spin h-4 w-4" />
+                    <div className="flex items-center gap-1 xs:gap-2 p-1 xs:p-2 text-muted-foreground">
+                      <Loader2 className="animate-spin h-3 xs:h-4 w-3 xs:w-4" />
                       <span>IntelliBot is typing...</span>
                     </div>
                   )}
@@ -365,19 +388,19 @@ export default function ChatPage() {
           </CardContent>
           
           {/* Fixed input area */}
-          <CardFooter className="px-3 py-2 sm:px-6 sm:py-3 border-t shrink-0">
-            <form onSubmit={handleSendMessage} className="w-full flex gap-2">
+          <CardFooter className="px-1 xs:px-2 sm:px-4 md:px-6 !py-0 border-t shrink-0 !mb-0">
+            <form onSubmit={handleSendMessage} className="w-full flex gap-1 xs:gap-2 py-1 xs:py-2">
               <Textarea
                 placeholder="Type your message here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleInputKeyDown}
                 disabled={isLoading}
-                className="flex-1 text-sm h-9 min-h-[2.5rem] max-h-32 resize-y"
+                className="flex-1 text-xs xs:text-sm h-8 xs:h-9 min-h-[2rem] xs:min-h-[2.5rem] max-h-20 xs:max-h-32 resize-y"
                 rows={1}
               />
-              <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 px-2">
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <Button type="submit" disabled={isLoading || !input.trim()} className="h-8 xs:h-9 px-1.5 xs:px-2">
+                {isLoading ? <Loader2 className="h-3 xs:h-4 xs:w-4 animate-spin" /> : <Send className="h-3 xs:h-4 xs:w-4" />}
                 <span className="sr-only">Send message</span>
               </Button>
             </form>
