@@ -3,14 +3,31 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { MessageSquare, Send, Loader2, Bot, User } from "lucide-react"
+import { MessageSquare, Send, Loader2, User, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import Navbar from "@/components/navbar"
 import { chatWithAI } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
+
+// Function to format message text and convert ** to bold elements
+const formatMessage = (text: string) => {
+  // Regular expression to find text between asterisks
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Extract the text without asterisks and wrap in a bold element
+      const boldText = part.slice(2, -2);
+      return <strong key={index}>{boldText}</strong>;
+    }
+    return part;
+  });
+};
 
 type Message = {
   role: "system" | "user" | "assistant"
@@ -21,8 +38,10 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [partialResponse, setPartialResponse] = useState("")
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
   // Modified scroll function to handle scrolling better
   const scrollToBottom = () => {
@@ -50,12 +69,24 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage])
     setInput("")
     setIsLoading(true)
+    setPartialResponse("")
 
     try {
       const chatHistory = messages.filter((m) => m.role !== "system")
       const response = await chatWithAI(input, chatHistory)
 
-      setMessages((prev) => [...prev, { role: "assistant", content: response }])
+      let i = 0
+      function typeNextChar() {
+        setPartialResponse(response.slice(0, i + 1))
+        if (i < response.length - 1) {
+          i++
+          setTimeout(typeNextChar, 15)
+        } else {
+          setMessages((prev) => [...prev, { role: "assistant", content: response }])
+          setPartialResponse("")
+        }
+      }
+      typeNextChar()
     } catch (error) {
       toast({
         title: "Error",
@@ -63,10 +94,42 @@ export default function ChatPage() {
         variant: "destructive",
       })
       console.error(error)
+      setPartialResponse("")
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Helper to get plain text from formatted JSX (for copy)
+  function getPlainTextFromFormattedMessage(text: string) {
+    // Remove **bold** markers and return plain text
+    return text.replace(/\*\*(.*?)\*\*/g, '$1')
+  }
+
+  const handleCopy = (text: string, index: number) => {
+    const plain = getPlainTextFromFormattedMessage(text)
+    navigator.clipboard.writeText(plain)
+    setCopiedIndex(index)
+    toast({
+      title: "Copied!",
+      description: "AI response copied to clipboard.",
+      duration: 1200,
+    })
+    setTimeout(() => setCopiedIndex(null), 1000)
+  }
+
+  // Handle Enter/Shift+Enter for textarea
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      // Only send if not loading and input is not empty
+      if (!isLoading && input.trim()) {
+        // Simulate form submit
+        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+        handleSendMessage(fakeEvent);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col h-[100vh]">
@@ -99,7 +162,14 @@ export default function ChatPage() {
             <div className="rounded-md bg-background/50 border p-2 sm:p-3 min-h-full">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <Bot className="h-10 w-10 sm:h-12 sm:w-12 text-primary mb-3 opacity-50" />
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 relative mb-3">
+                    <Image 
+                      src="https://i.ibb.co/v49kzqvJ/Logo.png" 
+                      alt="IntelliBot Logo" 
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                   <h3 className="text-base sm:text-lg font-semibold mb-1">Welcome to <span className="gradient-text">IntelliBot</span>!</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
                     I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and
@@ -113,20 +183,69 @@ export default function ChatPage() {
                       key={index}
                       className={cn(
                         "flex items-start gap-2 rounded-lg p-2",
-                        message.role === "user" ? "bg-secondary ml-4 sm:ml-8" : "bg-primary/10 mr-4 sm:mr-8",
+                        message.role === "user"
+                          ? "ml-auto bg-secondary justify-end text-right max-w-fit"
+                          : "mr-auto bg-primary/10 justify-start text-left max-w-[80%] relative"
                       )}
+                      style={message.role === "user" ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }}
                     >
-                      <div
-                        className={cn(
-                          "rounded-full p-1 flex-shrink-0",
-                          message.role === "user" ? "bg-background" : "bg-primary/20",
-                        )}
-                      >
-                        {message.role === "user" ? <User className="h-3 w-3 sm:h-4 sm:w-4" /> : <Bot className="h-3 w-3 sm:h-4 sm:w-4" />}
-                      </div>
-                      <div className="whitespace-pre-wrap text-xs sm:text-sm">{message.content}</div>
+                      {message.role === "user" ? (
+                        <div className="rounded-full p-1 flex-shrink-0 bg-background">
+                          <User className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
+                          <Image 
+                            src="/Logo.png" 
+                            alt="IntelliBot Logo" 
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap text-xs sm:text-sm flex-1">{formatMessage(message.content)}</div>
+                      {/* Copy icon for assistant messages */}
+                      {message.role === "assistant" && (
+                        <button
+                          className={cn(
+                            "ml-2 p-1 rounded transition-colors duration-200",
+                            copiedIndex === index ? "bg-green-100 text-green-600" : "hover:bg-muted"
+                          )}
+                          title={copiedIndex === index ? "Copied!" : "Copy response"}
+                          onClick={() => handleCopy(message.content, index)}
+                          type="button"
+                        >
+                          {copiedIndex === index ? (
+                            <Check className="h-4 w-4 animate-bounce" />
+                          ) : (
+                            <Copy className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   ))}
+                  {partialResponse && (
+                    <div className="flex items-start gap-2 rounded-lg p-2 bg-primary/10 mr-auto max-w-[80%] justify-start text-left">
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
+                        <Image 
+                          src="/Logo.png" 
+                          alt="IntelliBot Logo" 
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="whitespace-pre-wrap text-xs sm:text-sm">
+                        {formatMessage(partialResponse)}
+                        <span className="blinking-cursor">|</span>
+                      </div>
+                    </div>
+                  )}
+                  {isLoading && !partialResponse && (
+                    <div className="flex items-center gap-2 p-2 text-muted-foreground">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      <span>IntelliBot is typing...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -135,12 +254,14 @@ export default function ChatPage() {
           {/* Fixed input area */}
           <CardFooter className="px-3 py-2 sm:px-6 sm:py-3 border-t shrink-0">
             <form onSubmit={handleSendMessage} className="w-full flex gap-2">
-              <Input
+              <Textarea
                 placeholder="Type your message here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleInputKeyDown}
                 disabled={isLoading}
-                className="flex-1 text-sm h-9"
+                className="flex-1 text-sm h-9 min-h-[2.5rem] max-h-32 resize-y"
+                rows={1}
               />
               <Button type="submit" disabled={isLoading || !input.trim()} className="h-9 px-2">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
