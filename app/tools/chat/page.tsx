@@ -215,15 +215,14 @@ export default function ChatPage() {
       // let currentPauseFunction = pauseForThisSession // (no longer needed)
 
       let i = 0
+      const step = 3; // Number of characters to reveal per tick
       function typeNextChar() {
         if (i < response.length) {
-          const currentPartialText = response.slice(0, i + 1)
+          const currentPartialText = response.slice(0, i + step)
           setPartialResponse(currentPartialText)
-          i++
-          
-          // Faster typing for code blocks and math expressions
-          const delay = response.slice(i-3, i).includes('\\') || response[i] === '`' ? 5 : 20
-          
+          i += step
+          // Much faster typing for code blocks and math expressions
+          const delay = response.slice(i-3, i).includes('\\') || response[i] === '`' ? 1 : 8
           // Only continue if we haven't been paused
           if (shouldContinueTyping) {
             setTimeout(typeNextChar, delay)
