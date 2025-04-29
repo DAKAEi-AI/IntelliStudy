@@ -18,6 +18,19 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
+// Custom CSS for the blinking cursor
+const cursorStyle = `
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .blinking-cursor {
+    animation: blink 1s step-end infinite;
+    font-weight: bold;
+    color: currentColor;
+  }
+`;
+
 // Function to format message text and convert ** to bold elements
 const formatMessage = (text: string) => {
   // Regular expression to find text between asterisks
@@ -92,10 +105,14 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
   const [partialResponse, setPartialResponse] = useState("")
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  // Ref to store the current pause function for the typing session
+  const pauseResponseRef = useRef<() => void>(() => {})
 
   // Modified scroll function to handle scrolling better
   const scrollToBottom = () => {
@@ -105,14 +122,34 @@ export default function ChatPage() {
     }
   }
 
-  // Scroll when messages change
+  // Function to pause/stop response generation
+  const pauseResponse = () => {
+    setIsTyping(false)
+    if (partialResponse) {
+      // Add the partial response as the assistant's message
+      setMessages((prev) => [...prev, { role: "assistant", content: partialResponse }])
+      setPartialResponse("")
+    }
+  }
+
+  // Scroll when messages or partialResponse change
   useEffect(() => {
     // Use a small timeout to ensure content has rendered
     const timer = setTimeout(() => {
       scrollToBottom();
-    }, 50);
+    }, 100);  // Increased timeout for better rendering
     return () => clearTimeout(timer);
-  }, [messages]);
+  }, [messages, partialResponse]);
+
+  // Add an additional effect to handle scrolling during typing
+  useEffect(() => {
+    if (partialResponse) {
+      const timer = setInterval(() => {
+        scrollToBottom();
+      }, 500); // Check every 500ms if scroll is needed during typing
+      return () => clearInterval(timer);
+    }
+  }, [partialResponse]);
 
   // Typing animation for welcome message
   const welcomeDescription = "I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and I'll do my best to help you succeed!"
@@ -155,17 +192,56 @@ export default function ChatPage() {
       const chatHistory = messages.filter((m) => m.role !== "system")
       const response = await chatWithAI(input, chatHistory)
 
-      let i = 0
-      function typeNextChar() {
-        setPartialResponse(response.slice(0, i + 1))
-        if (i < response.length - 1) {
-          i++
-          setTimeout(typeNextChar, 15)
-        } else {
-          setMessages((prev) => [...prev, { role: "assistant", content: response }])
+      // Set typing state to true to show the pause button
+      setIsTyping(true)
+      
+      // Use a reference to track if typing should continue
+      let shouldContinueTyping = true
+      
+      // Create a local pauseResponse function for this typing session
+      const pauseForThisSession = () => {
+        shouldContinueTyping = false
+        setIsTyping(false)
+        if (partialResponse) {
+          setMessages((prev) => [...prev, { role: "assistant", content: partialResponse }])
           setPartialResponse("")
         }
       }
+      
+      // Store the original function reference
+      // const originalPauseFunction = pauseResponse // (no longer needed)
+      
+      // Create a new function that we'll use during this typing session
+      // let currentPauseFunction = pauseForThisSession // (no longer needed)
+
+      let i = 0
+      function typeNextChar() {
+        if (i < response.length) {
+          const currentPartialText = response.slice(0, i + 1)
+          setPartialResponse(currentPartialText)
+          i++
+          
+          // Faster typing for code blocks and math expressions
+          const delay = response.slice(i-3, i).includes('\\') || response[i] === '`' ? 5 : 20
+          
+          // Only continue if we haven't been paused
+          if (shouldContinueTyping) {
+            setTimeout(typeNextChar, delay)
+          }
+        } else {
+          // Finished typing
+          setMessages((prev) => [...prev, { role: "assistant", content: response }])
+          setPartialResponse("")
+          setIsTyping(false)
+        }
+      }
+
+      // Override the pauseResponse function for this session
+      // @ts-ignore - Temporarily override the function
+      // pauseResponse = pauseForThisSession
+      pauseResponseRef.current = pauseForThisSession
+      
+      // Start the typing animation
       typeNextChar()
     } catch (error) {
       toast({
@@ -175,6 +251,7 @@ export default function ChatPage() {
       })
       console.error(error)
       setPartialResponse("")
+      setIsTyping(false)
     } finally {
       setIsLoading(false)
     }
@@ -214,6 +291,7 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-screen">
       <Navbar />
+      <style jsx global>{cursorStyle}</style>
 
       {/* Main container with fixed height */}
       <div className="flex-1 flex flex-col w-full max-w-full sm:container sm:max-w-screen-xl mx-auto px-1 xs:px-2 sm:px-4 pt-2 pb-2 overflow-hidden">
@@ -228,19 +306,19 @@ export default function ChatPage() {
         </div>
 
         {/* Chat container - fixed 100vh height minus header/title space */}
-        <Card className="flex-1 flex flex-col w-full max-w-full sm:max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm overflow-hidden" 
+        <Card className="flex-1 flex flex-col w-full max-w-full sm:max-w-4xl mx-auto gradient-border overflow-hidden" 
           style={{ height: 'calc(100vh - 130px)', maxHeight: 'calc(100vh - 100px)' }}>
           <CardHeader className="px-2 py-1 xs:py-2 sm:px-4 md:px-6 sm:py-2 md:py-3 shrink-0">
             <CardTitle className="text-sm xs:text-base sm:text-lg">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
             <CardDescription className="text-xs">Your AI study assistant is ready to help with your questions</CardDescription>
           </CardHeader>
           
-          {/* Scrollable message area */}
+          {/* Scrollable message area - only this should scroll */}
           <CardContent 
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto px-1 sm:px-4 md:px-6 py-1 sm:py-2"
+            className="flex-1 overflow-y-auto px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-3 border-t"
           >
-            <div className="rounded-md bg-background/50 border p-1 xs:p-2 sm:p-3 flex flex-col w-full h-full">
+            <div className="flex flex-col w-full h-full">
               {messages.length === 0 ? (
                 <div className="flex flex-1 items-center justify-center w-full h-full text-center p-4">
                   <div className="flex flex-col items-center justify-center w-full">
@@ -265,7 +343,7 @@ export default function ChatPage() {
                     <div
                       key={index}
                       className={cn(
-                        "flex items-start gap-1 xs:gap-2 rounded-lg p-1 xs:p-2 max-h-[40vh] xs:max-h-[45vh] sm:max-h-[50vh] overflow-hidden",
+                        "flex items-start gap-1 xs:gap-2 rounded-lg p-2 xs:p-3",
                         message.role === "user"
                           ? "self-end bg-primary/20 max-w-[85vw] xs:max-w-[80vw] sm:max-w-fit"
                           : "self-start bg-secondary/60 max-w-[85vw] xs:max-w-[90vw] sm:max-w-[80%] md:max-w-[75%]"
@@ -285,7 +363,7 @@ export default function ChatPage() {
                           />
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap text-xs xs:text-sm flex-1 break-words overflow-y-auto overflow-x-hidden max-h-[35vh] xs:max-h-[40vh] sm:max-h-[45vh] pr-1 w-full">
+                      <div className="whitespace-pre-wrap text-xs xs:text-sm flex-1 break-words pr-1 w-full">
                         {message.role === "assistant" ? (
                           splitCodeAndExplanation(autoFormatCodeBlocks(message.content)).map((block, i) =>
                             block.type === 'code' ? (
@@ -298,7 +376,7 @@ export default function ChatPage() {
                                 >
                                   Copy
                                 </button>
-                                <div className="overflow-x-auto w-full">
+                                <div className="w-full">
                                   <SyntaxHighlighter
                                     language={block.lang}
                                     style={oneDark}
@@ -307,8 +385,6 @@ export default function ChatPage() {
                                       padding: '0.75em 1em', 
                                       fontSize: '0.75em',
                                       margin: 0, 
-                                      maxHeight: '20vh',
-                                      overflowY: 'auto',
                                       width: '100%'
                                     }}
                                     showLineNumbers={false}
@@ -319,7 +395,7 @@ export default function ChatPage() {
                                 </div>
                               </div>
                             ) : (
-                              <div key={i} className="mb-2 xs:mb-3 overflow-hidden w-full">
+                              <div key={i} className="mb-2 xs:mb-3 w-full">
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm]}
                                   components={{
@@ -342,7 +418,7 @@ export default function ChatPage() {
                       {message.role === "assistant" && (
                         <button
                           className={cn(
-                            "ml-1 xs:ml-2 p-0.5 xs:p-1 rounded transition-colors duration-200",
+                            "ml-1 xs:ml-2 p-0.5 xs:p-1 rounded transition-colors duration-200 flex-shrink-0",
                             copiedIndex === index ? "bg-green-100 text-green-600" : "hover:bg-muted"
                           )}
                           title={copiedIndex === index ? "Copied!" : "Copy response"}
@@ -360,7 +436,7 @@ export default function ChatPage() {
                   ))}
                   {partialResponse && (
                     <div 
-                      className="flex items-start gap-1 xs:gap-2 rounded-lg p-1 xs:p-2 bg-secondary/60 self-start max-w-[85vw] xs:max-w-[90vw] sm:max-w-[80%] md:max-w-[75%] max-h-[40vh] xs:max-h-[45vh] sm:max-h-[50vh] overflow-hidden"
+                      className="flex items-start gap-1 xs:gap-2 rounded-lg p-2 xs:p-3 bg-secondary/60 self-start max-w-[85vw] xs:max-w-[90vw] sm:max-w-[80%] md:max-w-[75%]"
                     >
                       <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 relative flex-shrink-0">
                         <Image 
@@ -370,14 +446,50 @@ export default function ChatPage() {
                           className="object-contain"
                         />
                       </div>
-                      <div className="whitespace-pre-wrap text-xs xs:text-sm break-words overflow-y-auto max-h-[35vh] xs:max-h-[40vh] sm:max-h-[45vh] pr-1">
-                        {formatMessage(partialResponse)}
-                        <span className="blinking-cursor">|</span>
+                      <div className="whitespace-pre-wrap text-xs xs:text-sm flex-1 break-words pr-1 w-full relative">
+                        {splitCodeAndExplanation(autoFormatCodeBlocks(partialResponse)).map((block, i) =>
+                          block.type === 'code' ? (
+                            <div key={i} className="my-1 xs:my-2 relative group w-full">
+                              <div className="w-full">
+                                <SyntaxHighlighter
+                                  language={block.lang}
+                                  style={oneDark}
+                                  customStyle={{ 
+                                    borderRadius: '6px', 
+                                    padding: '0.75em 1em', 
+                                    fontSize: '0.75em',
+                                    margin: 0, 
+                                    width: '100%'
+                                  }}
+                                  showLineNumbers={false}
+                                  wrapLongLines={true}
+                                >
+                                  {block.content}
+                                </SyntaxHighlighter>
+                              </div>
+                            </div>
+                          ) : (
+                            <div key={i} className="mb-2 xs:mb-3 w-full">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  p: ({node, ...props}) => <p className="mb-1.5 xs:mb-2 break-words" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="mb-1.5 xs:mb-2 pl-3 xs:pl-4 list-disc w-full pr-1" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="mb-1.5 xs:mb-2 pl-3 xs:pl-4 list-decimal w-full pr-1" {...props} />,
+                                  li: ({node, ...props}) => <li className="mb-0.5 xs:mb-1 break-words pr-1" {...props} />
+                                }}
+                              >
+                                {block.content || ''}
+                              </ReactMarkdown>
+                            </div>
+                          )
+                        )}
+                        <span className="blinking-cursor inline-block ml-0.5">|</span>
                       </div>
                     </div>
                   )}
                   {isLoading && !partialResponse && (
-                    <div className="flex items-center gap-1 xs:gap-2 p-1 xs:p-2 text-muted-foreground">
+                    <div className="flex items-center gap-1 xs:gap-2 p-2 xs:p-3 text-muted-foreground">
                       <Loader2 className="animate-spin h-3 xs:h-4 w-3 xs:w-4" />
                       <span>IntelliBot is typing...</span>
                     </div>
@@ -389,20 +501,38 @@ export default function ChatPage() {
           
           {/* Fixed input area */}
           <CardFooter className="px-1 xs:px-2 sm:px-4 md:px-6 !py-0 border-t shrink-0 !mb-0">
-            <form onSubmit={handleSendMessage} className="w-full flex gap-1 xs:gap-2 py-1 xs:py-2">
+            <form onSubmit={handleSendMessage} className="w-full flex gap-1 xs:gap-2 py-3 xs:py-4">
               <Textarea
                 placeholder="Type your message here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleInputKeyDown}
                 disabled={isLoading}
-                className="flex-1 text-xs xs:text-sm h-8 xs:h-9 min-h-[2rem] xs:min-h-[2.5rem] max-h-20 xs:max-h-32 resize-y"
+                className="flex-1 text-xs xs:text-sm h-10 xs:h-12 min-h-[2.5rem] xs:min-h-[3rem] max-h-24 xs:max-h-36 resize-y px-4 py-3 rounded-md shadow-sm focus:ring-1 focus:ring-primary"
                 rows={1}
               />
-              <Button type="submit" disabled={isLoading || !input.trim()} className="h-8 xs:h-9 px-1.5 xs:px-2">
-                {isLoading ? <Loader2 className="h-3 xs:h-4 xs:w-4 animate-spin" /> : <Send className="h-3 xs:h-4 xs:w-4" />}
-                <span className="sr-only">Send message</span>
-              </Button>
+              {isTyping ? (
+                <Button 
+                  type="button" 
+                  onClick={() => pauseResponseRef.current()}
+                  className="h-10 xs:h-12 px-3 xs:px-4 bg-amber-600 hover:bg-amber-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 xs:h-4 xs:w-4">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                  </svg>
+                  <span className="sr-only">Pause response</span>
+                </Button>
+              ) : (
+                <Button 
+                  type="submit" 
+                  disabled={isLoading || !input.trim()} 
+                  className="h-10 xs:h-12 px-3 xs:px-4"
+                >
+                  {isLoading ? <Loader2 className="h-3 xs:h-4 xs:w-4 animate-spin" /> : <Send className="h-3 xs:h-4 xs:w-4" />}
+                  <span className="sr-only">Send message</span>
+                </Button>
+              )}
             </form>
           </CardFooter>
         </Card>
