@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3">
           {/* Logo and About Section */}
           <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-center sm:justify-start">
+            <div className="flex items-center justify-start">
               <Image 
                 src="https://i.ibb.co/v49kzqvJ/Logo.png" 
                 alt="IntelliStudy Logo" 
@@ -22,7 +22,7 @@ export default function Footer() {
                 draggable="false"
               />
             </div>
-            <p className="text-sm text-muted-foreground max-w-md text-center sm:text-left">
+            <p className="text-sm text-muted-foreground max-w-md text-left">
               IntelliStudy is an advanced AI-powered learning platform designed to transform your educational experience. 
               We offer tools to summarize texts, rewrite content, generate quizzes, and provide intelligent chat assistance
               to enhance your learning efficiency and comprehension.

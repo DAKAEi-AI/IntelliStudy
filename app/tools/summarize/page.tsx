@@ -437,36 +437,36 @@ export default function SummarizePage() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      <main className="flex-1 container py-8">
-        <div className="flex flex-col items-center justify-center mb-8">
-          <div className="rounded-full bg-primary/10 p-4 mb-4 floating">
-            <BookOpen className="h-10 w-10 text-primary" />
+      <main className="flex-1 container py-4 sm:py-8">
+        <div className="flex flex-col items-center justify-center mb-4 sm:mb-8">
+          <div className="rounded-full bg-primary/10 p-3 sm:p-4 mb-2 sm:mb-4 floating">
+            <BookOpen className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold gradient-text">Text Summarization</h1>
-          <p className="text-muted-foreground mt-2 text-center max-w-2xl">
+          <h1 className="text-2xl sm:text-3xl font-bold gradient-text">Text Summarization</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2 text-center max-w-2xl px-2">
             Condense lengthy articles, research papers, and study materials into concise summaries.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <Card className="gradient-border bg-secondary/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Input Text</CardTitle>
-              <CardDescription>Paste the text you want to summarize</CardDescription>
+            <CardHeader className="px-3 py-3 sm:px-6 sm:py-6">
+              <CardTitle className="text-lg sm:text-xl">Input Text</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Paste the text you want to summarize</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6">
               <Textarea
                 placeholder="Enter or paste your text here..."
-                className="min-h-[300px] resize-none"
+                className="min-h-[250px] sm:min-h-[300px] resize-none text-sm sm:text-base"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
               />
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSummarize} disabled={isLoading || !inputText.trim()} className="w-full">
+            <CardFooter className="px-3 py-3 sm:px-6 sm:py-4">
+              <Button onClick={handleSummarize} disabled={isLoading || !inputText.trim()} className="w-full text-sm sm:text-base py-2 sm:py-3">
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                     Summarizing...
                   </>
                 ) : (
@@ -477,53 +477,55 @@ export default function SummarizePage() {
           </Card>
 
           <Card className="gradient-border bg-secondary/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-              <CardDescription>Your summarized text will appear here</CardDescription>
+            <CardHeader className="px-3 py-3 sm:px-6 sm:py-6">
+              <CardTitle className="text-lg sm:text-xl">Summary</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Your summarized text will appear here</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="min-h-[300px] p-4 rounded-md bg-background/50 border">
+            <CardContent className="px-3 sm:px-6">
+              <div className="min-h-[250px] sm:min-h-[300px] p-3 sm:p-4 rounded-md bg-background/50 border">
                 {summary ? (
-                  <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatText(summary) }} />
+                  <div className="whitespace-pre-wrap text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: formatText(summary) }} />
                 ) : (
-                  <div className="text-muted-foreground italic">Your summary will appear here after processing...</div>
+                  <div className="text-muted-foreground italic text-xs sm:text-sm">Your summary will appear here after processing...</div>
                 )}
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
+            <CardFooter className="flex justify-end gap-2 px-3 py-3 sm:px-6 sm:py-4 flex-wrap">
               {summary && (
                 <>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button 
                         variant="outline"
-                        className={`${isDownloading ? 'animate-pulse bg-blue-50' : ''} transition-all duration-200`}
+                        className={`${isDownloading ? 'animate-pulse bg-blue-50' : ''} transition-all duration-200 text-xs sm:text-sm py-1 sm:py-2 h-8 sm:h-10`}
                         disabled={isDownloading}
                       >
                         {isDownloading ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Downloading...
+                            <Loader2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                            <span className="hidden sm:inline">Downloading...</span>
+                            <span className="sm:hidden">...</span>
                           </>
                         ) : (
                           <>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
+                            <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Download</span>
+                            <span className="sm:hidden">Save</span>
                           </>
                         )}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleDownload('txt')} className="cursor-pointer">
-                        <FileText className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem onClick={() => handleDownload('txt')} className="cursor-pointer text-xs sm:text-sm">
+                        <FileText className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Text File (.txt)</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownload('docx')} className="cursor-pointer">
-                        <FilePlus className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem onClick={() => handleDownload('docx')} className="cursor-pointer text-xs sm:text-sm">
+                        <FilePlus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         <span>Word Document (.docx)</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDownload('pdf')} className="cursor-pointer">
-                        <FileType className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem onClick={() => handleDownload('pdf')} className="cursor-pointer text-xs sm:text-sm">
+                        <FileType className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         <span>PDF Document (.pdf)</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -531,7 +533,7 @@ export default function SummarizePage() {
 
                   <Button
                     variant="outline"
-                    className={`relative ${isCopying ? 'scale-95 bg-green-50' : ''} transition-all duration-200`}
+                    className={`relative ${isCopying ? 'scale-95 bg-green-50' : ''} transition-all duration-200 text-xs sm:text-sm py-1 sm:py-2 h-8 sm:h-10`}
                     onClick={() => {
                       setIsCopying(true);
                       // Use stripFormatting instead of stripHtml to remove all formatting symbols
@@ -552,7 +554,10 @@ export default function SummarizePage() {
                         <span className="absolute inset-0 border-2 border-green-500 rounded-md animate-ping opacity-50"></span>
                       </>
                     ) : (
-                      "Copy to Clipboard"
+                      <>
+                        <span className="hidden sm:inline">Copy to Clipboard</span>
+                        <span className="sm:hidden">Copy</span>
+                      </>
                     )}
                   </Button>
                 </>
