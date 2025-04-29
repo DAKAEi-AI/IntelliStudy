@@ -3,11 +3,14 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { MessageSquare, Send, Loader2, Bot, User } from "lucide-react"
+import { MessageSquare, Send, Loader2, Bot, User, BellOff, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useLocalStorage } from "../../../hooks/use-local-storage"
 import Navbar from "@/components/navbar"
 import { chatWithAI } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -21,6 +24,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [vibrationEnabled, setVibrationEnabled] = useLocalStorage<boolean>("vibration-enabled", true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -28,9 +32,27 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
+  // Vibration function
+  const triggerVibration = (pattern: number | number[]) => {
+    if (vibrationEnabled && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Effect for handling vibration when loading state changes
+  useEffect(() => {
+    if (isLoading) {
+      // When AI starts responding, trigger a subtle, short vibration
+      triggerVibration(150);
+    } else if (messages.length > 0) {
+      // When AI finishes responding, trigger a double vibration
+      triggerVibration([100, 50, 100]);
+    }
+  }, [isLoading, messages.length]);
 
   async function handleSendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -76,7 +98,33 @@ export default function ChatPage() {
 
         <Card className="max-w-4xl mx-auto gradient-border bg-secondary/50 backdrop-blur-sm">
           <CardHeader className="px-3 py-3 sm:px-6 sm:py-6">
-            <CardTitle className="text-lg sm:text-xl">Chat with Robotum</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg sm:text-xl">Chat with <span className="gradient-text">IntelliBot</span></CardTitle>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={vibrationEnabled} 
+                        onCheckedChange={setVibrationEnabled} 
+                        id="vibration-mode" 
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      {vibrationEnabled ? (
+                        <Bell className="h-4 w-4 text-primary" />
+                      ) : (
+                        <BellOff className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      {vibrationEnabled ? "Vibration feedback on" : "Vibration feedback off"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <CardDescription className="text-xs sm:text-sm">Your AI study assistant is ready to help with your questions</CardDescription>
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
@@ -84,7 +132,7 @@ export default function ChatPage() {
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4 sm:p-8">
                   <Bot className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-3 sm:mb-4 opacity-50" />
-                  <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">Welcome to Robotum!</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">Welcome to <span className="gradient-text">IntelliBot</span>!</h3>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
                     I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and
                     I'll do my best to help you succeed!

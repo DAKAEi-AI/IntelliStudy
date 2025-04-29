@@ -133,7 +133,7 @@ export async function chatWithAI(userMessage: string, chatHistory: Message[] = [
     {
       role: "system",
       content:
-        "You are Robotum, a helpful AI assistant for students. Provide accurate, educational, and supportive responses to help students learn and succeed in their studies.",
+        "You are IntelliBot, a helpful AI assistant for students. Provide accurate, educational, and supportive responses to help students learn and succeed in their studies.",
     },
     ...chatHistory,
     {
