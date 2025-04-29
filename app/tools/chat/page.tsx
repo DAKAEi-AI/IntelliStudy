@@ -13,6 +13,10 @@ import Navbar from "@/components/navbar"
 import { chatWithAI } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 // Function to format message text and convert ** to bold elements
 const formatMessage = (text: string) => {
@@ -32,6 +36,56 @@ const formatMessage = (text: string) => {
 type Message = {
   role: "system" | "user" | "assistant"
   content: string
+}
+
+// Helper to auto-wrap code blocks in markdown with language identifiers
+function autoFormatCodeBlocks(text: string): string {
+  if (text.includes('```')) return text; // Already formatted
+  const codeBlockRegex = /((?:^|\n)(?:\s{0,4}(?:#|def |class |import |print\(|for |while |if |else:|elif |try:|except |input\()).+\n(?:[ \t]*.+\n)*?)/g;
+  return text.replace(codeBlockRegex, (match) => {
+    if (match.trim().startsWith('```')) return match;
+    return `\n\n\`\`\`python\n${match.trim()}\n\`\`\`\n`;
+  });
+}
+
+// Helper to split code and explanation for assistant messages
+function splitCodeAndExplanation(text: string) {
+  // If already contains a code block, split on it
+  const codeBlockPattern = /```([a-zA-Z0-9]*)\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let result = [];
+  let match;
+  let found = false;
+  while ((match = codeBlockPattern.exec(text)) !== null) {
+    found = true;
+    // Explanation before code
+    if (match.index > lastIndex) {
+      const explanation = text.slice(lastIndex, match.index).trim();
+      if (explanation) result.push({ type: 'explanation', content: explanation });
+    }
+    // Check if 'Explanation:' is inside the code block
+    const codeContent = match[2];
+    const explanationIndex = codeContent.indexOf('Explanation:');
+    if (explanationIndex !== -1) {
+      // Split code and explanation
+      const codePart = codeContent.slice(0, explanationIndex).trim();
+      const explanationPart = codeContent.slice(explanationIndex).trim();
+      if (codePart) result.push({ type: 'code', lang: match[1] || 'plaintext', content: codePart });
+      if (explanationPart) result.push({ type: 'explanation', content: explanationPart });
+    } else {
+      // Code block
+      result.push({ type: 'code', lang: match[1] || 'plaintext', content: codeContent.trim() });
+    }
+    lastIndex = codeBlockPattern.lastIndex;
+  }
+  // Any trailing explanation
+  if (lastIndex < text.length) {
+    const explanation = text.slice(lastIndex).trim();
+    if (explanation) result.push({ type: 'explanation', content: explanation });
+  }
+  // If no code block found, treat all as explanation
+  if (!found) return [{ type: 'explanation', content: text }];
+  return result;
 }
 
 export default function ChatPage() {
@@ -59,6 +113,32 @@ export default function ChatPage() {
     }, 50);
     return () => clearTimeout(timer);
   }, [messages]);
+
+  // Typing animation for welcome message
+  const welcomeDescription = "I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and I'll do my best to help you succeed!"
+  const [typedWelcome, setTypedWelcome] = useState("")
+  useEffect(() => {
+    if (messages.length === 0) {
+      setTypedWelcome("");
+      let i = 0;
+      let cancelled = false;
+      let current = "";
+      const interval = setInterval(() => {
+        if (cancelled) return;
+        if (i < welcomeDescription.length) {
+          current += welcomeDescription.charAt(i);
+          setTypedWelcome(current);
+          i++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 18);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }
+  }, [messages.length]);
 
   async function handleSendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -159,25 +239,27 @@ export default function ChatPage() {
             ref={chatContainerRef}
             className="flex-1 overflow-y-auto px-3 sm:px-6 py-2"
           >
-            <div className="rounded-md bg-background/50 border p-2 sm:p-3 min-h-full">
+            <div className="rounded-md bg-background/50 border p-2 sm:p-3 min-h-full flex flex-col w-full h-full">
               {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 relative mb-3">
-                    <Image 
-                      src="https://i.ibb.co/v49kzqvJ/Logo.png" 
-                      alt="IntelliBot Logo" 
-                      fill
-                      className="object-contain"
-                    />
+                <div className="flex flex-1 items-center justify-center w-full h-full text-center p-4">
+                  <div className="flex flex-col items-center justify-center w-full">
+                    <div className="h-10 w-10 sm:h-12 sm:w-12 relative mb-3">
+                      <Image 
+                        src="https://i.ibb.co/v49kzqvJ/Logo.png" 
+                        alt="IntelliBot Logo" 
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold mb-1">Hi, I'm <span className="gradient-text">IntelliBot</span></h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground max-w-md min-h-[40px]">
+                      {typedWelcome}
+                      {typedWelcome.length < welcomeDescription.length && <span className="blinking-cursor">|</span>}
+                    </p>
                   </div>
-                  <h3 className="text-base sm:text-lg font-semibold mb-1">Welcome to <span className="gradient-text">IntelliBot</span>!</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
-                    I'm your AI study assistant. Ask me anything about your studies, homework, or academic concepts, and
-                    I'll do my best to help you succeed!
-                  </p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   {messages.map((message, index) => (
                     <div
                       key={index}
@@ -203,7 +285,38 @@ export default function ChatPage() {
                           />
                         </div>
                       )}
-                      <div className="whitespace-pre-wrap text-xs sm:text-sm flex-1">{formatMessage(message.content)}</div>
+                      <div className="whitespace-pre-wrap text-xs sm:text-sm flex-1">
+                        {message.role === "assistant" ? (
+                          splitCodeAndExplanation(autoFormatCodeBlocks(message.content)).map((block, i) =>
+                            block.type === 'code' ? (
+                              <div key={i} className="my-2 relative group">
+                                <button
+                                  className="absolute top-2 right-2 z-10 bg-muted px-2 py-1 rounded text-xs opacity-80 hover:opacity-100 transition"
+                                  onClick={() => navigator.clipboard.writeText(block.content)}
+                                  title="Copy code"
+                                  type="button"
+                                >
+                                  Copy
+                                </button>
+                                <SyntaxHighlighter
+                                  language={block.lang}
+                                  style={oneDark}
+                                  customStyle={{ borderRadius: '8px', padding: '1em', fontSize: '0.95em', margin: 0 }}
+                                  showLineNumbers={false}
+                                >
+                                  {block.content}
+                                </SyntaxHighlighter>
+                              </div>
+                            ) : (
+                              <div key={i} className="mb-2">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{block.content || ''}</ReactMarkdown>
+                              </div>
+                            )
+                          )
+                        ) : (
+                          formatMessage(message.content)
+                        )}
+                      </div>
                       {/* Copy icon for assistant messages */}
                       {message.role === "assistant" && (
                         <button
