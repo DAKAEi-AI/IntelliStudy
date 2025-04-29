@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileUp, Loader2, Sparkles, Zap } from "lucide-react"
+import { FileUp, Loader2, Sparkles, Zap, Download, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import Navbar from "@/components/navbar"
 import { generateQuiz } from "@/lib/api"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type QuizOption = {
   id: string
@@ -53,6 +54,7 @@ export default function QuizPage() {
   const [quizCompleted, setQuizCompleted] = useState(false)
   const [score, setScore] = useState(0)
   const [isCopying, setIsCopying] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const { toast } = useToast()
 
   const difficulties = [
@@ -244,6 +246,226 @@ export default function QuizPage() {
     return userAnswers.some((answer) => answer.questionId === question.id)
   }
 
+  const formatText = (text: string) => {
+    if (!text) return text;
+    let formattedText = text.replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    formattedText = formattedText.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<i>$1</i>');
+    formattedText = formattedText.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+    formattedText = formattedText.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+    formattedText = formattedText.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+    formattedText = formattedText.replace(/^- (.*$)/gm, '• $1');
+    formattedText = formattedText.replace(/\n/g, '<br/>');
+    return formattedText;
+  };
+
+  const stripHtml = (html: string) => {
+    if (!html) return html;
+    return html
+      .replace(/<b>(.*?)<\/b>/g, '$1')
+      .replace(/<i>(.*?)<\/i>/g, '$1')
+      .replace(/<h[1-3]>(.*?)<\/h[1-3]>/g, '$1')
+      .replace(/<br\/>/g, '\n');
+  };
+
+  const stripFormatting = (text: string) => {
+    if (!text) return text;
+    let cleanText = text
+      .replace(/<b>(.*?)<\/b>/g, '$1')
+      .replace(/<i>(.*?)<\/i>/g, '$1')
+      .replace(/<h[1-3]>(.*?)<\/h[1-3]>/g, '$1')
+      .replace(/<br\/>/g, '\n');
+    cleanText = cleanText
+      .replace(/\*\*\*(.*?)\*\*\*/g, '$1')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '$1')
+      .replace(/^# (.*$)/gm, '$1')
+      .replace(/^## (.*$)/gm, '$1')
+      .replace(/^### (.*$)/gm, '$1')
+      .replace(/^- (.*$)/gm, '• $1');
+    return cleanText;
+  };
+
+  const getResultsSummary = () => {
+    if (!parsedQuiz) return '';
+    let summary = `Quiz Results: ${parsedQuiz.title}\nDifficulty: ${parsedQuiz.difficulty}\nScore: ${score}%\n\n`;
+    parsedQuiz.questions.forEach((question, idx) => {
+      const userAnswer = userAnswers.find(a => a.questionId === question.id)?.selectedOption;
+      summary += `Q${idx + 1}: ${question.question}\n`;
+      question.options.forEach(option => {
+        summary += `  ${option.id}. ${option.text}\n`;
+      });
+      summary += `Your answer: ${userAnswer || '-'}\nCorrect answer: ${question.correctAnswer}\nExplanation: ${question.explanation}\n\n`;
+    });
+    return summary;
+  };
+
+  const handleCopy = () => {
+    setIsCopying(true);
+    navigator.clipboard.writeText(quiz);
+    toast({
+      title: "Copied!",
+      description: "Quiz copied to clipboard",
+    });
+    setTimeout(() => setIsCopying(false), 1000);
+  };
+
+  const handleDownload = async (fileType: string, isResults = false) => {
+    const content = isResults ? getResultsSummary() : quiz;
+    if (!content) return;
+    setIsDownloading(true);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    try {
+      switch (fileType) {
+        case 'txt': {
+          const cleanText = stripFormatting(content);
+          const blob = new Blob([cleanText], { type: 'text/plain' });
+          const fileName = `quiz-results-${timestamp}.txt`;
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast({ title: "Download Complete", description: "Text file downloaded successfully." });
+          break;
+        }
+        case 'docx': {
+          const { Document, Paragraph, TextRun, HeadingLevel, Packer } = await import('docx');
+          const formattedText = formatText(content);
+          const children = [];
+          const paragraphs = formattedText.split('<br/>').filter(para => para.trim() !== '');
+          for (let para of paragraphs) {
+            const headingMatch = para.match(/<h([1-3])>(.*?)<\/h([1-3])>/);
+            if (headingMatch) {
+              const headingLevel = parseInt(headingMatch[1]);
+              const headingText = headingMatch[2];
+              children.push(
+                new Paragraph({
+                  text: headingText,
+                  heading: headingLevel === 1 ? HeadingLevel.HEADING_1 : headingLevel === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+                })
+              );
+              continue;
+            }
+            const textRuns = [];
+            let currentText = para;
+            while (currentText.includes('<b>')) {
+              const boldStart = currentText.indexOf('<b>');
+              const boldEnd = currentText.indexOf('</b>');
+              if (boldStart > 0) {
+                textRuns.push(new TextRun({ text: currentText.substring(0, boldStart), size: 24 }));
+              }
+              textRuns.push(new TextRun({ text: currentText.substring(boldStart + 3, boldEnd), bold: true, size: 24 }));
+              currentText = currentText.substring(boldEnd + 4);
+            }
+            if (currentText) {
+              while (currentText.includes('<i>')) {
+                const italicStart = currentText.indexOf('<i>');
+                const italicEnd = currentText.indexOf('</i>');
+                if (italicStart > 0) {
+                  textRuns.push(new TextRun({ text: currentText.substring(0, italicStart), size: 24 }));
+                }
+                textRuns.push(new TextRun({ text: currentText.substring(italicStart + 3, italicEnd), italics: true, size: 24 }));
+                currentText = currentText.substring(italicEnd + 4);
+              }
+              if (currentText) {
+                textRuns.push(new TextRun({ text: currentText, size: 24 }));
+              }
+            }
+            if (textRuns.length > 0) {
+              children.push(new Paragraph({ children: textRuns }));
+            } else {
+              children.push(new Paragraph({ children: [new TextRun({ text: stripHtml(para), size: 24 })] }));
+            }
+          }
+          const doc = new Document({ sections: [{ properties: {}, children }] });
+          const buffer = await Packer.toBuffer(doc);
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `quiz-results-${timestamp}.docx`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast({ title: "Download Complete", description: "Word document downloaded successfully." });
+          break;
+        }
+        case 'pdf': {
+          const JsPDF = await import('jspdf');
+          const pdf = new JsPDF.default();
+          pdf.setProperties({ title: 'Quiz Results', subject: 'Quiz Results', creator: 'IntelliStudy', author: 'IntelliStudy' });
+          const formattedText = formatText(content);
+          const paragraphs = formattedText.split('<br/>').filter(para => para.trim() !== '');
+          let y = 20;
+          const normalLineHeight = 7;
+          const headingLineHeight = 12;
+          const margin = 10;
+          const pageWidth = pdf.internal.pageSize.getWidth() - (margin * 2);
+          for (let i = 0; i < paragraphs.length; i++) {
+            let para = paragraphs[i];
+            let lineHeight = normalLineHeight;
+            const headingMatch = para.match(/<h([1-3])>(.*?)<\/h([1-3])>/);
+            if (headingMatch) {
+              const headingLevel = parseInt(headingMatch[1]);
+              const headingText = headingMatch[2];
+              switch(headingLevel) {
+                case 1:
+                  pdf.setFontSize(18);
+                  pdf.setFont("helvetica", 'bold');
+                  lineHeight = headingLineHeight;
+                  break;
+                case 2:
+                  pdf.setFontSize(16);
+                  pdf.setFont("helvetica", 'bold');
+                  lineHeight = headingLineHeight;
+                  break;
+                case 3:
+                  pdf.setFontSize(14);
+                  pdf.setFont("helvetica", 'bold');
+                  lineHeight = headingLineHeight;
+                  break;
+              }
+              if (y + lineHeight > 280) {
+                pdf.addPage();
+                y = 20;
+              }
+              pdf.text(headingText, margin, y);
+              y += lineHeight * 1.5;
+              pdf.setFontSize(12);
+              pdf.setFont("helvetica", 'normal');
+              continue;
+            }
+            const plainText = stripHtml(para);
+            const lines = pdf.splitTextToSize(plainText, pageWidth);
+            if (y + (lines.length * lineHeight) > 280) {
+              pdf.addPage();
+              y = 20;
+            }
+            for (let j = 0; j < lines.length; j++) {
+              pdf.text(lines[j], margin, y);
+              y += lineHeight;
+              if (y > 280 && (j < lines.length - 1 || i < paragraphs.length - 1)) {
+                pdf.addPage();
+                y = 20;
+              }
+            }
+          }
+          pdf.save(`quiz-results-${timestamp}.pdf`);
+          toast({ title: "Download Complete", description: "PDF file downloaded successfully." });
+          break;
+        }
+      }
+    } catch (error) {
+      toast({ title: "Download Error", description: "Failed to download file." });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-[100vh]">
       <Navbar />
@@ -424,6 +646,36 @@ export default function QuizPage() {
                            'You might need more practice with this topic.'}
                         </p>
                         
+                        <div className="flex gap-2 mt-4 justify-center">
+                          <Button
+                            variant="outline"
+                            className={`relative ${isCopying ? 'scale-95 bg-green-50' : ''} transition-all duration-200 text-xs py-1 h-8`}
+                            onClick={() => {
+                              setIsCopying(true);
+                              navigator.clipboard.writeText(getResultsSummary());
+                              toast({ title: "Copied!", description: "Quiz results copied to clipboard" });
+                              setTimeout(() => setIsCopying(false), 1000);
+                            }}
+                            disabled={isCopying}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            {isCopying ? "Copied!" : "Copy Results"}
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" className="text-xs py-1 h-8" disabled={isDownloading}>
+                                <Download className="h-4 w-4 mr-1" />
+                                Download Results
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem onClick={() => handleDownload('txt', true)}>TXT</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownload('docx', true)}>DOCX</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDownload('pdf', true)}>PDF</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
                         <Button onClick={resetQuiz} variant="outline" className="mt-4 text-xs py-1 h-8">
                           Create Another Quiz
                         </Button>
@@ -533,37 +785,6 @@ export default function QuizPage() {
                     {currentStep === parsedQuiz.questions.length ? "Finish Quiz" : "Next Question"}
                   </Button>
                 </>
-              )}
-              
-              {quiz && currentStep === 0 && (
-                <Button
-                  variant="outline"
-                  className={`relative ${isCopying ? 'scale-95 bg-green-50' : ''} transition-all duration-200 text-xs py-1 h-8`}
-                  onClick={() => {
-                    setIsCopying(true);
-                    navigator.clipboard.writeText(quiz);
-                    toast({
-                      title: "Copied!",
-                      description: "Quiz copied to clipboard",
-                    });
-                    
-                    setTimeout(() => {
-                      setIsCopying(false);
-                    }, 1000);
-                  }}
-                >
-                  {isCopying ? (
-                    <>
-                      <span className="animate-pulse text-green-600">Copied!</span>
-                      <span className="absolute inset-0 border-2 border-green-500 rounded-md animate-ping opacity-50"></span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">Copy to Clipboard</span>
-                      <span className="sm:hidden">Copy</span>
-                    </>
-                  )}
-                </Button>
               )}
             </CardFooter>
           </Card>
