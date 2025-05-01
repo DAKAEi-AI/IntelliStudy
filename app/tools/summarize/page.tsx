@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { BookOpen, Download, Loader2, FileText, FileType, FilePlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -76,10 +76,31 @@ const stripFormatting = (text: string) => {
 export default function SummarizePage() {
   const [inputText, setInputText] = useState("")
   const [summary, setSummary] = useState("")
+  const [partialSummary, setPartialSummary] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const { toast } = useToast()
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null)
+  const [animatingPlaceholder, setAnimatingPlaceholder] = useState(false)
+  const [placeholderDots, setPlaceholderDots] = useState("")
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (animatingPlaceholder) {
+      interval = setInterval(() => {
+        setPlaceholderDots((prev) => {
+          if (prev.length >= 3) return "";
+          return prev + ".";
+        });
+      }, 400);
+    } else {
+      setPlaceholderDots("");
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [animatingPlaceholder]);
 
   async function handleSummarize() {
     if (!inputText.trim()) {
@@ -92,15 +113,33 @@ export default function SummarizePage() {
     }
 
     setIsLoading(true)
+    setPartialSummary("")
+    setSummary("")
+    setAnimatingPlaceholder(true)
     try {
       const result = await summarizeText(inputText)
-      setSummary(result)
+      // Animate the summary like the chatbot
+      let i = 0
+      const step = 3
+      function typeNextChar() {
+        if (i < result.length) {
+          setPartialSummary(result.slice(0, i + step))
+          i += step
+          typingTimeout.current = setTimeout(typeNextChar, 8)
+        } else {
+          setPartialSummary(result)
+          setSummary(result)
+          setAnimatingPlaceholder(false)
+        }
+      }
+      typeNextChar()
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to summarize text. Please try again.",
         variant: "destructive",
       })
+      setAnimatingPlaceholder(false)
       console.error(error)
     } finally {
       setIsLoading(false)
@@ -483,10 +522,14 @@ export default function SummarizePage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-6">
               <div className="min-h-[250px] sm:min-h-[300px] p-3 rounded-md bg-background/50 border overflow-auto">
-                {summary ? (
-                  <div className="whitespace-pre-wrap text-sm" dangerouslySetInnerHTML={{ __html: formatText(summary) }} />
+                {summary || partialSummary ? (
+                  <div className="whitespace-pre-wrap text-sm" dangerouslySetInnerHTML={{ __html: formatText(partialSummary || summary) }} />
                 ) : (
-                  <div className="text-muted-foreground italic text-xs">Your summary will appear here after processing...</div>
+                  <div className="text-muted-foreground italic text-xs">
+                    {(isLoading || animatingPlaceholder)
+                      ? `Your summary will appear here after processing${placeholderDots}`
+                      : "Your summary will appear here after processing..."}
+                  </div>
                 )}
               </div>
             </CardContent>

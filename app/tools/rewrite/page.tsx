@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Loader2, PenTool, Download, FileText, FileType, FilePlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,11 +77,32 @@ const stripFormatting = (text: string) => {
 export default function RewritePage() {
   const [inputText, setInputText] = useState("")
   const [rewrittenText, setRewrittenText] = useState("")
+  const [partialRewrittenText, setPartialRewrittenText] = useState("")
   const [style, setStyle] = useState("academic")
   const [isLoading, setIsLoading] = useState(false)
   const [isCopying, setIsCopying] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const { toast } = useToast()
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null)
+  const [animatingPlaceholder, setAnimatingPlaceholder] = useState(false)
+  const [placeholderDots, setPlaceholderDots] = useState("")
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (animatingPlaceholder) {
+      interval = setInterval(() => {
+        setPlaceholderDots((prev) => {
+          if (prev.length >= 3) return "";
+          return prev + ".";
+        });
+      }, 400);
+    } else {
+      setPlaceholderDots("");
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [animatingPlaceholder]);
 
   const styles = [
     { value: "academic", label: "Academic" },
@@ -102,15 +123,33 @@ export default function RewritePage() {
     }
 
     setIsLoading(true)
+    setPartialRewrittenText("")
+    setRewrittenText("")
+    setAnimatingPlaceholder(true)
     try {
       const result = await rewriteContent(inputText, style)
-      setRewrittenText(result)
+      // Animate the rewritten text like the chatbot
+      let i = 0
+      const step = 3
+      function typeNextChar() {
+        if (i < result.length) {
+          setPartialRewrittenText(result.slice(0, i + step))
+          i += step
+          typingTimeout.current = setTimeout(typeNextChar, 8)
+        } else {
+          setPartialRewrittenText(result)
+          setRewrittenText(result)
+          setAnimatingPlaceholder(false)
+        }
+      }
+      typeNextChar()
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to rewrite text. Please try again.",
         variant: "destructive",
       })
+      setAnimatingPlaceholder(false)
       console.error(error)
     } finally {
       setIsLoading(false)
@@ -505,11 +544,13 @@ export default function RewritePage() {
             </CardHeader>
             <CardContent className="px-3 sm:px-6">
               <div className="min-h-[250px] sm:min-h-[300px] p-3 rounded-md bg-background/50 border overflow-auto">
-                {rewrittenText ? (
-                  <div className="whitespace-pre-wrap text-sm" dangerouslySetInnerHTML={{ __html: formatText(rewrittenText) }} />
+                {rewrittenText || partialRewrittenText ? (
+                  <div className="whitespace-pre-wrap text-sm" dangerouslySetInnerHTML={{ __html: formatText(partialRewrittenText || rewrittenText) }} />
                 ) : (
                   <div className="text-muted-foreground italic text-xs">
-                    Your rewritten content will appear here after processing...
+                    {(isLoading || animatingPlaceholder)
+                      ? `Your rewritten content will appear here after processing${placeholderDots}`
+                      : "Your rewritten content will appear here after processing..."}
                   </div>
                 )}
               </div>

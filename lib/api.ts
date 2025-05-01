@@ -41,17 +41,54 @@ export async function callDakaeiApi(messages: Message[]): Promise<string> {
         "x-api-key": apiKey,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        // model: "deepseek-chat",
+        model: "qwen3-32b",
         messages,
+        stream: true,
       }),
     })
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`)
+    // Handle streaming response
+    if (response.headers.get("content-type")?.includes("text/event-stream")) {
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let buffer = "";
+      let result = "";
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+        let lines = buffer.split("\n");
+        buffer = lines.pop()!; // last line may be incomplete
+        for (let line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              done = true;
+              break;
+            }
+            try {
+              const json = JSON.parse(data);
+              const delta = json.choices?.[0]?.delta;
+              if (delta?.content) {
+                result += delta.content;
+              }
+            } catch (e) {
+              // ignore parse errors
+            }
+          }
+        }
+      }
+      return result;
+    } else {
+      // fallback to normal JSON response
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+      const data: ApiResponse = await response.json();
+      return data.choices[0].message.content;
     }
-
-    const data: ApiResponse = await response.json()
-    return data.choices[0].message.content
   } catch (error) {
     console.error("Error calling Dakaei API:", error)
     throw error

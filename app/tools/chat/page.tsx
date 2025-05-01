@@ -107,9 +107,11 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [partialResponse, setPartialResponse] = useState("")
+  const [awaitingNouradinInfo, setAwaitingNouradinInfo] = useState(false)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Ref to store the current pause function for the typing session
   const pauseResponseRef = useRef<() => void>(() => {})
@@ -181,6 +183,66 @@ export default function ChatPage() {
     e.preventDefault()
 
     if (!input.trim()) return
+
+    // Custom Nouradin info response logic
+    const nameRegex = /nour(a|e)?l?d{1,2}i?n|nuur(a|e)?l?d{1,2}i?n/gi;
+    const yesRegex = /^(yes|yeah|yep|yup|sure|of course|ok|okay|please|tell me more|more info|who is he|who's he|who is the creator|who's the creator|who made this|who built this|who developed this)/i;
+
+    if (awaitingNouradinInfo && yesRegex.test(input.trim())) {
+      // Show full info with typewriter effect
+      const fullInfo = `Nouraddin Abdurahman Aden is a Software Engineering Student, Data Engineer, and Frontend Developer (Next.js, React, TailwindCSS).\n\nHe's skilled in Python, SQL, AWS, ETL, Machine Learning, Data Mining, and Software Project Management.\nHe's certified as a Data Analyst in SQL, Data Scientist in Python, and Associate Data Engineer in SQL.\n\nEducation:\n- OSTIM Teknik Üniversitesi (Software Engineering, 2021–2026)\n- Omar bin Abdul Aziz Secondary (IT/Engineering, 2018–2021)\n- Religious Institute Preparatory Secondary (Islamic Studies, 2014–2018)\n\nNouraddin is passionate about building scalable, data-driven systems and modern web apps. He's experienced in designing data pipelines, working with SQL databases, leveraging Python for data transformation, and developing with Next.js, React, and TailwindCSS. He's also learning cloud platforms like AWS and exploring ETL frameworks and data warehouses.\n\nContact:\n- Email: n.aden1208@gmail.com\n- LinkedIn: linkedin.com/in/nouraddin\n- GitHub: github.com/NouradinAbdurahman\n- Instagram: @nouradiin_\n- X (Twitter): @Nouradin1208`;
+      setMessages(prev => [...prev, { role: "user", content: input }])
+      setInput("")
+      setIsLoading(true)
+      setPartialResponse("")
+      setAwaitingNouradinInfo(false)
+      // Animate the response
+      let i = 0
+      const step = 3
+      setIsTyping(true)
+      function typeNextChar() {
+        if (i < fullInfo.length) {
+          setPartialResponse(fullInfo.slice(0, i + step))
+          i += step
+          setTimeout(typeNextChar, 8)
+        } else {
+          setMessages(prev => [...prev, { role: "assistant", content: fullInfo }])
+          setPartialResponse("")
+          setIsTyping(false)
+        }
+      }
+      typeNextChar()
+      setIsLoading(false)
+      return;
+    }
+
+    if (nameRegex.test(input.trim())) {
+      // Short app-focused message with typewriter effect
+      const shortInfo = `Nouraddin is the creator of IntelliStudy, combining backend data skills and frontend expertise to deliver a modern, interactive AI-powered study assistant.\n\nDo you want to know more about the creator of IntelliStudy?`;
+      setMessages(prev => [...prev, { role: "user", content: input }])
+      setInput("")
+      setIsLoading(true)
+      setPartialResponse("")
+      setAwaitingNouradinInfo(true)
+      // Animate the response
+      let i = 0
+      const step = 3
+      setIsTyping(true)
+      function typeNextChar() {
+        if (i < shortInfo.length) {
+          setPartialResponse(shortInfo.slice(0, i + step))
+          i += step
+          setTimeout(typeNextChar, 8)
+        } else {
+          setMessages(prev => [...prev, { role: "assistant", content: shortInfo }])
+          setPartialResponse("")
+          setIsTyping(false)
+        }
+      }
+      typeNextChar()
+      setIsLoading(false)
+      return;
+    }
 
     const userMessage: Message = { role: "user", content: input }
     setMessages((prev) => [...prev, userMessage])
@@ -500,21 +562,29 @@ export default function ChatPage() {
           
           {/* Fixed input area */}
           <CardFooter className="px-1 xs:px-2 sm:px-4 md:px-6 !py-0 border-t shrink-0 !mb-0">
-            <form onSubmit={handleSendMessage} className="w-full flex gap-1 xs:gap-2 py-3 xs:py-4">
+            <form onSubmit={handleSendMessage} className="w-full flex gap-2 xs:gap-3 py-3 xs:py-4 items-end">
               <Textarea
+                ref={inputRef}
                 placeholder="Type your message here..."
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={e => {
+                  setInput(e.target.value);
+                  const ta = inputRef.current;
+                  if (ta) {
+                    ta.style.height = 'auto';
+                    ta.style.height = ta.scrollHeight + 'px';
+                  }
+                }}
                 onKeyDown={handleInputKeyDown}
                 disabled={isLoading}
-                className="flex-1 text-xs xs:text-sm h-10 xs:h-12 min-h-[2.5rem] xs:min-h-[3rem] max-h-24 xs:max-h-36 resize-y px-4 py-3 rounded-md shadow-sm focus:ring-1 focus:ring-primary"
+                className="flex-1 text-xs xs:text-sm min-h-[2.5rem] xs:min-h-[3rem] max-h-36 px-4 py-3 rounded-md shadow-sm focus:ring-1 focus:ring-primary resize-none"
                 rows={1}
               />
               {isTyping ? (
                 <Button 
                   type="button" 
                   onClick={() => pauseResponseRef.current()}
-                  className="h-10 xs:h-12 px-3 xs:px-4 bg-amber-600 hover:bg-amber-700"
+                  className="h-10 xs:h-12 px-3 xs:px-4 bg-amber-600 hover:bg-amber-700 self-end"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 xs:h-4 xs:w-4">
                     <rect x="6" y="4" width="4" height="16"></rect>
@@ -526,7 +596,7 @@ export default function ChatPage() {
                 <Button 
                   type="submit" 
                   disabled={isLoading || !input.trim()} 
-                  className="h-10 xs:h-12 px-3 xs:px-4"
+                  className="h-10 xs:h-12 px-3 xs:px-4 self-end"
                 >
                   {isLoading ? <Loader2 className="h-3 xs:h-4 xs:w-4 animate-spin" /> : <Send className="h-3 xs:h-4 xs:w-4" />}
                   <span className="sr-only">Send message</span>
