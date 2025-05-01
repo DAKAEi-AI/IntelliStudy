@@ -190,7 +190,7 @@ export default function ChatPage() {
 
     if (awaitingNouradinInfo && yesRegex.test(input.trim())) {
       // Show full info with typewriter effect
-      const fullInfo = `Nouraddin Abdurahman Aden is a Software Engineering Student, Data Engineer, and Frontend Developer (Next.js, React, TailwindCSS).\n\nHe's skilled in Python, SQL, AWS, ETL, Machine Learning, Data Mining, and Software Project Management.\nHe's certified as a Data Analyst in SQL, Data Scientist in Python, and Associate Data Engineer in SQL.\n\nEducation:\n- OSTIM Teknik Üniversitesi (Software Engineering, 2021–2026)\n- Omar bin Abdul Aziz Secondary (IT/Engineering, 2018–2021)\n- Religious Institute Preparatory Secondary (Islamic Studies, 2014–2018)\n\nNouraddin is passionate about building scalable, data-driven systems and modern web apps. He's experienced in designing data pipelines, working with SQL databases, leveraging Python for data transformation, and developing with Next.js, React, and TailwindCSS. He's also learning cloud platforms like AWS and exploring ETL frameworks and data warehouses.\n\nContact:\n- Email: n.aden1208@gmail.com\n- LinkedIn: linkedin.com/in/nouraddin\n- GitHub: github.com/NouradinAbdurahman\n- Instagram: @nouradiin_\n- X (Twitter): @Nouradin1208`;
+      const fullInfo = `Nouraddin Abdurahman Aden is a Software Engineering Student, Data Engineer, and Frontend Developer (Next.js, React, TailwindCSS).\n\nHe's skilled in Python, SQL, AWS, ETL, Machine Learning, Data Mining, and Software Project Management.\nHe's certified as a Data Analyst in SQL, Data Scientist in Python, and Associate Data Engineer in SQL.\n\nEducation:\n- OSTIM Teknik Üniversitesi (Software Engineering, 2021–2026)\n- Omar bin Abdul Aziz Secondary (IT/Engineering, 2018–2021)\n- Religious Institute Preparatory Secondary (Islamic Studies, 2014–2018)\n\nNouraddin is passionate about building scalable, data-driven systems and modern web apps. He's experienced in designing data pipelines, working with SQL databases, leveraging Python for data transformation, and developing with Next.js, React, and TailwindCSS. He's also learning cloud platforms like AWS and exploring ETL frameworks and data warehouses.\n\nContact:\n* Email: [n.aden1208@gmail.com](mailto:n.aden1208@gmail.com)\n* LinkedIn: [linkedin.com/in/nouraddin](https://linkedin.com/in/nouraddin)\n* GitHub: [@NouradinAbdurahman](https://github.com/NouradinAbdurahman)\n* Instagram: [@nouradiin_](https://www.instagram.com/nouradiin_/)\n* X (Twitter): [@Nouradin1208](https://x.com/Nouradin1208)`;
       setMessages(prev => [...prev, { role: "user", content: input }])
       setInput("")
       setIsLoading(true)
@@ -218,7 +218,7 @@ export default function ChatPage() {
 
     if (nameRegex.test(input.trim())) {
       // Short app-focused message with typewriter effect
-      const shortInfo = `Nouraddin is the creator of IntelliStudy, combining backend data skills and frontend expertise to deliver a modern, interactive AI-powered study assistant.\n\nDo you want to know more about the creator of IntelliStudy?`;
+      const shortInfo = `Nouraddin is the creator of **IntelliStudy**, combining backend data skills and frontend expertise to deliver a modern, interactive AI-powered study assistant.\n\nDo you want to know more about the creator of **IntelliStudy**?`;
       setMessages(prev => [...prev, { role: "user", content: input }])
       setInput("")
       setIsLoading(true)
