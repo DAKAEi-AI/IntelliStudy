@@ -42,7 +42,7 @@ export async function callDakaeiApi(messages: Message[]): Promise<string> {
       },
       body: JSON.stringify({
         // model: "deepseek-chat",
-        model: "qwen3-32b",
+        model: "qwen-3",
         messages,
         stream: true,
       }),

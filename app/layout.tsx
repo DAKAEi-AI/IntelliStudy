@@ -17,10 +17,10 @@ export const metadata: Metadata = {
   generator: 'v0dev',
   icons: {
     icon: [
-      { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "32x32" },
-      { url: "https://i.ibb.co/v49kzqvJ/Logo.png", sizes: "any" }
+      { url: "/Logo.png", sizes: "32x32" },
+      { url: "/Logo.png", sizes: "any" }
     ],
-    apple: "https://i.ibb.co/v49kzqvJ/Logo.png",
+    apple: "/Logo.png",
   }
 }
 
@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased flex flex-col", fontSans.variable)}>
+      <body suppressHydrationWarning className={cn("min-h-screen bg-background font-sans antialiased flex flex-col", fontSans.variable)}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
           <div className="flex-1 flex flex-col">
             {children}
